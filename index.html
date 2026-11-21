@@ -210,6 +210,18 @@ input,textarea,select{font-family:inherit}
 #coord-lbl{font-size:12px;color:var(--tx2);margin-top:8px;display:flex;align-items:center;gap:6px}
 #coord-lbl.ok{color:var(--ok);font-weight:700}
 .svc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pk-box{border:1.5px solid var(--bdr);border-radius:12px;padding:10px;margin-top:10px;background:var(--sur)}
+.pk-h{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.pk-r{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.pk-r input{min-width:0}.pk-r .pk-n{flex:1}.pk-r .pk-p{width:104px;flex:none}
+.pk-x{border:0;background:none;color:var(--red);font-size:15px;cursor:pointer;padding:6px}
+.tr{display:flex;gap:6px;align-items:center;margin-bottom:6px}.tr input{flex:1;min-width:0}.tr .lbtn{padding:9px 10px;white-space:nowrap}
+.tr-img{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid var(--bdr)}
+.dep-opts{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.pk-list{margin-top:12px}.pk-list .pl-s{font-size:12.5px;font-weight:700;margin:8px 0 4px;color:var(--tx2)}
+.pk-list .pl-i{display:flex;gap:8px;justify-content:space-between;font-size:13px;padding:6px 10px;background:var(--bg);border-radius:8px;margin-bottom:4px}
+.pk-list .pl-i b{color:var(--ok);white-space:nowrap}
+.tag-man{display:inline-block;font-size:10.5px;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:10px;padding:1px 8px;margin-left:6px}
 .toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:10px;font-size:13.5px;font-weight:600;margin-top:4px}
 .sw{position:relative;width:44px;height:24px;flex-shrink:0}
 .sw input{opacity:0;width:0;height:0}
@@ -675,6 +687,7 @@ a.btnp,a.btnl{text-decoration:none}
       <div class="pend" id="pend-banner" style="display:none"><i class="fa fa-hourglass-half"></i> Hồ sơ đang chờ quản trị viên phê duyệt. Sau khi được duyệt, hồ sơ mới hiển thị công khai trên trang chủ.</div>
       <div class="frm" id="seg-bk" style="display:none">
         <div class="sdiv"><i class="fa fa-bell"></i>Lịch chụp — khách đặt lịch của tôi</div>
+        <button class="btnp" type="button" style="margin-bottom:12px" onclick="openManualBk()"><i class="fa fa-book-medical"></i>Thêm lịch chốt thủ công (sổ tay)</button>
         <div id="bk-pro"></div>
         <div class="sdiv" style="margin-top:22px"><i class="fa fa-calendar-check"></i>Lịch tôi đã đặt</div>
         <div id="bk-mine-p"></div>
@@ -712,16 +725,23 @@ a.btnp,a.btnl{text-decoration:none}
 
         <div class="sdiv"><i class="fa fa-briefcase"></i>Dịch vụ</div>
         <div class="svc-chips" id="f-svcs"></div>
+        <div id="f-pkgs"></div>
         <div class="fg" style="margin-top:11px"><label>Giá tham khảo</label><input id="f-price" type="text" placeholder="Vd: Từ 500.000đ/buổi"></div>
         <div class="fg"><label>Giới thiệu</label><textarea id="f-bio" rows="4" placeholder="Kinh nghiệm, phong cách chụp, thiết bị..."></textarea></div>
         <div class="sdiv"><i class="fa fa-wallet"></i>Thanh toán &amp; đặt cọc</div>
         <div class="fg"><label>Ngân hàng nhận cọc</label><select id="f-bank"></select></div>
         <div class="rw2">
           <div class="fg"><label>Số tài khoản</label><input id="f-accno" type="text" inputmode="numeric" placeholder="Số tài khoản"></div>
-          <div class="fg"><label>Tiền cọc / lịch (đ)</label><input id="f-deposit" type="text" inputmode="numeric" placeholder="Vd: 300000"></div>
         </div>
-        <div class="fg"><label>Mã QR nhận tiền (ảnh quét)</label>
-          <div class="qr-up"><img id="f-qr-prev" alt="" style="display:none"><div class="qr-b"><button type="button" class="lbtn" onclick="$('#file-qr').click()"><i class="fa fa-qrcode"></i>Tải mã QR</button><button type="button" class="lbtn" id="f-qr-del" onclick="clearQr()" style="display:none"><i class="fa fa-trash"></i>Xóa</button></div></div></div>
+        <div class="fg"><label>Các mức đặt cọc cho khách chọn</label>
+          <div id="f-tiers"></div>
+          <div style="display:flex;gap:6px"><button type="button" class="lbtn" style="flex:1" onclick="addTier()"><i class="fa fa-plus"></i>Thêm mức cọc</button><button type="button" class="lbtn" style="flex:1" onclick="addTier([100000,200000,500000])"><i class="fa fa-bolt"></i>Mẫu 100k/200k/500k</button></div>
+          <div class="bk-m" style="margin-top:6px">Mỗi mức có thể tải mã QR riêng. Bỏ trống QR → web tự sinh mã quét đúng số tiền từ ngân hàng + số tài khoản ở trên.</div>
+        </div>
+        <label class="toggle">Cho phép khách chọn “Thanh toán đủ”<span class="sw"><input type="checkbox" id="f-full" onchange="collectPay();renderTiers()"><span></span></span></label>
+        <div id="f-full-box" style="margin-top:6px"></div>
+        <div class="fg"><label>Mã QR chung (dùng khi mức cọc không có QR riêng và chưa nhập số TK)</label>
+          <div class="qr-up"><img id="f-qr-prev" alt="" style="display:none"><div class="qr-b"><button type="button" class="lbtn" onclick="qrTarget='main';$('#file-qr').click()"><i class="fa fa-qrcode"></i>Tải mã QR chung</button><button type="button" class="lbtn" id="f-qr-del" onclick="clearQr()" style="display:none"><i class="fa fa-trash"></i>Xóa</button></div></div></div>
         <div class="fg"><label>Ghi chú thanh toán (Momo, ví khác...)</label><input id="f-paynote" type="text" placeholder="Không bắt buộc"></div>
 
         <label class="toggle">Hiển thị công khai trên bản đồ<span class="sw"><input type="checkbox" id="f-visible" checked><span></span></span></label>
@@ -841,7 +861,7 @@ const IMGBB_KEY = "005444bd03801687dcc8c6a3465d70ac";   // https://api.imgbb.com
 const HOME = [21.3891, 103.0227], HOME_ZOOM = 13;
 const SVC = [
   ['Ảnh cưới','fa-ring'],['Studio','fa-camera'],['Sinh nhật','fa-cake-candles'],['Tiệc / Liên hoan','fa-champagne-glasses'],
-  ['Kỷ yếu','fa-graduation-cap'],['Chân dung','fa-user'],['Gia đình','fa-people-roof'],['Em bé','fa-baby'],
+  ['Kỷ yếu','fa-graduation-cap'],['Chân dung','fa-user'],['Couple','fa-heart'],['Gia đình','fa-people-roof'],['Em bé','fa-baby'],
   ['Sự kiện','fa-star'],['Hội nghị','fa-users'],['Lễ hội / Văn hóa','fa-masks-theater'],['Du lịch','fa-mountain-sun'],
   ['Sản phẩm','fa-box-open'],['Thời trang','fa-shirt'],['Ảnh thẻ','fa-id-card'],['Quay phim','fa-video'],['Flycam','fa-helicopter']
 ];
@@ -892,6 +912,7 @@ if (!DEMO) {
     async get(uid) { const d = await col.doc(uid).get(); return d.exists ? { ...d.data(), id: d.id } : null; },
     async save(uid, data) { await col.doc(uid).set({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); },
     async remove(uid) { await col.doc(uid).delete(); },
+    async token() { return auth.currentUser ? auth.currentUser.getIdToken() : ''; },
     async adminSet(id, patch) { await col.doc(id).update(patch); },
     async getUser(uid) { const d = await db.collection('users').doc(uid).get(); return d.exists ? d.data() : null; },
     async saveUser(uid, u) { await db.collection('users').doc(uid).set(u); },
@@ -935,6 +956,7 @@ if (!DEMO) {
     onAuth(cb) { authCb = cb; let u = null; try { u = JSON.parse(localStorage.getItem(DUSER)); } catch {} cb(u); },
     async login() { const u = { uid: 'demo_user', name: 'Thợ ảnh Demo', email: 'demo@gmail.com', photo: '' }; localStorage.setItem(DUSER, JSON.stringify(u)); authCb(u); },
     async logout() { localStorage.removeItem(DUSER); authCb(null); },
+    async token() { return ''; },
     async addBk(b) { const a = JSON.parse(localStorage.getItem('BOOKTHO_DEMO_BK') || '{}'), id = uid8(); a[id] = { ...b, id }; localStorage.setItem('BOOKTHO_DEMO_BK', JSON.stringify(a)); return id; },
     async myBks(uid) { return Object.values(JSON.parse(localStorage.getItem('BOOKTHO_DEMO_BK') || '{}')).filter(b => b.custUid === uid); },
     async proBks(uid) { return Object.values(JSON.parse(localStorage.getItem('BOOKTHO_DEMO_BK') || '{}')).filter(b => b.proId === uid); },
@@ -1176,7 +1198,8 @@ function renderDetail() {
     <div class="d-sec">
       ${p.bio ? `<div class="d-bio">${esc(p.bio)}</div>` : ''}
       ${p.price ? `<div class="d-price"><i class="fa fa-tag"></i>${esc(p.price)}</div>` : ''}
-      ${p.pay && p.pay.deposit ? `<div class="d-price" style="color:#b45309;background:#fffbeb;margin-left:6px"><i class="fa fa-wallet"></i>Cọc giữ lịch: ${money(p.pay.deposit)}</div>` : ''}
+      ${payTiers(p.pay).length ? `<div class="d-price" style="color:#b45309;background:#fffbeb;margin-left:6px"><i class="fa fa-wallet"></i>Cọc giữ lịch: ${payTiers(p.pay).map(x => x.label).join(' / ')}</div>` : ''}
+      ${pkgsHtml(p)}
       ${phone || p.email ? `<div style="margin-top:12px;font-size:13px;color:var(--tx2);line-height:1.9">
         ${phone ? `<div><i class="fa fa-phone" style="width:18px"></i>${esc(p.phone)}</div>` : ''}
         ${p.email ? `<div><i class="fa fa-envelope" style="width:18px"></i><a href="mailto:${esc(p.email)}" style="color:var(--p)">${esc(p.email)}</a></div>` : ''}
@@ -1402,7 +1425,7 @@ function fillForm() {
   $('#f-name').value = d.name || ''; $('#f-phone').value = d.phone || ''; $('#f-zalo').value = d.zalo || '';
   $('#f-fb').value = d.fb || ''; $('#f-email').value = d.email || ''; $('#f-addr').value = d.address || '';
   $('#f-price').value = d.price || ''; $('#f-bio').value = d.bio || ''; $('#f-visible').checked = d.visible !== false;
-  fillPay(); updateAvPrev(); renderSvcs(); renderMyAlbums(); updateCoord(); calSel.me = null; calM.me = monthOf(todayStr()); renderMeCal(); refreshZalo();
+  fillPay(); updateAvPrev(); renderSvcs(); renderPkgs(); renderMyAlbums(); updateCoord(); calSel.me = null; calM.me = monthOf(todayStr()); renderMeCal(); refreshZalo();
 }
 function collectForm() {
   Object.assign(myData, {
@@ -1410,14 +1433,41 @@ function collectForm() {
     fb: $('#f-fb').value.trim(), email: $('#f-email').value.trim(), address: $('#f-addr').value.trim(),
     price: $('#f-price').value.trim(), bio: $('#f-bio').value.trim(), visible: $('#f-visible').checked
   });
-  collectPay();
+  collectPay(); collectPkgs();
   if (myData.fb && !/^https?:\/\//i.test(myData.fb)) myData.fb = 'https://' + myData.fb.replace(/^\/+/, '');
 }
 function updateAvPrev() { setAv($('#f-av-prev'), { avatar: myData.avatar, name: $('#f-name').value || myData.name }); }
 function renderSvcs() {
   $('#f-svcs').innerHTML = SERVICES.map(s => `<div class="chip${myData.services.includes(s) ? ' on' : ''}" onclick="toggleSvc('${esc(s)}')"><i class="fa ${svcIco(s)}"></i> ${esc(s)}</div>`).join('');
 }
-function toggleSvc(s) { const a = myData.services; const i = a.indexOf(s); i >= 0 ? a.splice(i, 1) : a.push(s); renderSvcs(); }
+function toggleSvc(s) { collectPkgs(); const a = myData.services; const i = a.indexOf(s); i >= 0 ? a.splice(i, 1) : a.push(s); renderSvcs(); renderPkgs(); }
+/* ----- Gói giá theo dịch vụ ----- */
+const MAX_PKG = 8;
+const pkgsOf = (p, sv) => ((p && p.pkgs && p.pkgs[sv]) || []).filter(x => x && x.n);
+function renderPkgs() {
+  const box = $('#f-pkgs'); if (!box) return;
+  myData.pkgs = myData.pkgs || {};
+  box.innerHTML = myData.services.filter(x => SERVICES.includes(x)).map(sv => {
+    const si = SERVICES.indexOf(sv), arr = myData.pkgs[sv] || [];
+    return `<div class="pk-box" data-si="${si}"><div class="pk-h"><i class="fa ${svcIco(sv)}"></i>Gói giá — ${esc(sv)}</div>` +
+      arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
+      `<button type="button" class="lbtn" style="width:100%" onclick="addPkg(${si})"><i class="fa fa-plus"></i>Thêm gói giá</button></div>`;
+  }).join('');
+}
+function collectPkgs() {
+  const box = $('#f-pkgs'); if (!box) return;
+  myData.pkgs = myData.pkgs || {};
+  box.querySelectorAll('.pk-box').forEach(bx => {
+    const sv = SERVICES[+bx.dataset.si]; if (!sv) return;
+    myData.pkgs[sv] = [...bx.querySelectorAll('.pk-r')].map(r => ({ n: r.querySelector('.pk-n').value.trim(), p: parseInt(r.querySelector('.pk-p').value.replace(/\D/g, '')) || 0 }));
+  });
+}
+function addPkg(si) { collectPkgs(); const sv = SERVICES[si], a = (myData.pkgs[sv] = myData.pkgs[sv] || []); if (a.length >= MAX_PKG) return toast('Tối đa ' + MAX_PKG + ' gói / dịch vụ', '#d97706'); a.push({ n: '', p: 0 }); renderPkgs(); }
+function delPkg(si, i) { collectPkgs(); (myData.pkgs[SERVICES[si]] || []).splice(i, 1); renderPkgs(); }
+function pkgsHtml(p) {
+  const rows = (p.services || []).map(sv => { const a = pkgsOf(p, sv); return a.length ? `<div class="pl-s"><i class="fa ${svcIco(sv)}"></i> ${esc(sv)}</div>` + a.map(g => `<div class="pl-i"><span>${esc(g.n)}</span><b>${g.p ? money(g.p) : ''}</b></div>`).join('') : ''; }).join('');
+  return rows ? `<div class="pk-list"><div class="sec-t" style="margin-bottom:0"><i class="fa fa-tags"></i>Bảng giá các gói</div>${rows}</div>` : '';
+}
 function updateCoord() {
   const el = $('#coord-lbl'), ok = isNum(myData.lat) && isNum(myData.lng);
   el.className = ok ? 'ok' : '';
@@ -1434,6 +1484,13 @@ function cleanData() {
     if (a.length) nb[k] = [...new Set(a)];
   });
   d.busy = nb;
+  const np = {};
+  SERVICES.forEach(sv => { const a = ((d.pkgs || {})[sv] || []).filter(g => g && String(g.n || '').trim()).slice(0, MAX_PKG).map(g => ({ n: String(g.n).trim().slice(0, 120), p: Math.max(0, Math.min(1e10, parseInt(g.p) || 0)) })); if (a.length) np[sv] = a; });
+  d.pkgs = np;
+  d.pay = d.pay || {};
+  d.pay.tiers = (d.pay.tiers || []).filter(t => t && t.amt > 0).slice(0, 6).map(t => ({ amt: Math.min(1e10, parseInt(t.amt) || 0), ...(safeUrl(t.qr || '') ? { qr: safeUrl(t.qr) } : {}) }));
+  d.pay.full = { on: !!(d.pay.full && d.pay.full.on), ...(d.pay.full && safeUrl(d.pay.full.qr || '') ? { qr: safeUrl(d.pay.full.qr) } : {}) };
+  d.pay.deposit = d.pay.tiers.length ? d.pay.tiers[0].amt : 0;
   d.albums = (d.albums || []).map(a => ({ id: a.id, title: a.title || '', desc: a.desc || '', cover: a.cover || '', photos: (a.photos || []).map(p => ({ u: p.u, t: p.t || p.u, ...(p.slide ? { slide: true } : {}) })) }));
   return d;
 }
@@ -1442,7 +1499,8 @@ async function saveProfile() {
   collectForm();
   if (!myData.name) return toast('⚠ Nhập tên hiển thị', '#dc2626');
   if (!digits(myData.phone) && !digits(myData.zalo) && !safeUrl(myData.fb)) return toast('⚠ Nhập ít nhất một thông tin liên hệ', '#dc2626');
-  if ((myData.pay.deposit || 0) > 0 && !myData.pay.accNo && !myData.pay.qr) return toast('⚠ Nhập số tài khoản hoặc tải mã QR nhận cọc', '#dc2626');
+  { const pp = myData.pay, qrs = (pp.tiers || []).every(t => t.qr) && (!(pp.full && pp.full.on) || pp.full.qr);
+    if (((pp.tiers || []).length || (pp.full && pp.full.on)) && !pp.accNo && !pp.qr && !qrs) return toast('⚠ Nhập số tài khoản hoặc tải mã QR nhận cọc', '#dc2626'); }
   const b = $('#btn-save'); b.disabled = true;
   try {
     await persist(); toast(myData.approved === false ? '✔ Đã lưu — hồ sơ đang chờ quản trị viên phê duyệt' : '✔ Đã lưu hồ sơ', '#059669');
@@ -1715,27 +1773,58 @@ const money = n => (+n || 0).toLocaleString('vi-VN') + 'đ';
 const slotTxt = s => s === 'a' ? 'Cả ngày' : s === 's' ? 'Buổi sáng' : 'Buổi chiều';
 const slotsOf = s => s === 'a' ? ['s', 'c'] : [s];
 let bkQuick = false, proBks = [], unwatchBks = null, bkSeen = null;
+let qrTarget = 'main';
 function fillPay() {
-  const p = myData.pay || {};
+  const p = myData.pay = myData.pay || {};
   $('#f-bank').innerHTML = '<option value="">— Chọn ngân hàng —</option>' + BANKS.map(b => `<option value="${b[1]}">${b[0]}</option>`).join('') + '<option value="other">Ngân hàng / ví khác</option>';
   $('#f-bank').value = p.bin || ''; $('#f-accno').value = p.accNo || '';
-  $('#f-deposit').value = p.deposit || ''; $('#f-paynote').value = p.note || ''; updQrPrev();
+  if (!Array.isArray(p.tiers)) p.tiers = (p.deposit > 0) ? [{ amt: p.deposit }] : [];
+  if (!p.full) p.full = { on: false };
+  $('#f-full').checked = !!p.full.on;
+  $('#f-paynote').value = p.note || ''; updQrPrev(); renderTiers();
 }
 function collectPay() {
-  const s = $('#f-bank'), o = myData.pay || {};
+  const s = $('#f-bank'), o = myData.pay || {}, old = o.tiers || [];
+  const rows = [...document.querySelectorAll('#f-tiers .tr')];
+  const tiers = rows.length || !$('#f-tiers').children.length ? rows.map((r, i) => ({ amt: parseInt(r.querySelector('.tr-a').value.replace(/\D/g, '')) || 0, ...(old[i] && old[i].qr ? { qr: old[i].qr } : {}) })) : old;
   myData.pay = { ...o, bin: s.value, bank: s.value ? s.selectedOptions[0].text : '', accNo: $('#f-accno').value.replace(/\D/g, ''),
-    deposit: parseInt($('#f-deposit').value.replace(/\D/g, '')) || 0, note: $('#f-paynote').value.trim() };
+    tiers, full: { ...(o.full || {}), on: $('#f-full').checked }, note: $('#f-paynote').value.trim() };
+  myData.pay.deposit = (tiers.find(t => t.amt > 0) || {}).amt || 0;
 }
+function renderTiers() {
+  const p = myData.pay || {}, t = p.tiers || [], box = $('#f-tiers'); if (!box) return;
+  box.innerHTML = t.map((x, i) => `<div class="tr"><input class="tr-a" inputmode="numeric" placeholder="Số tiền cọc (đ)" value="${x.amt || ''}">${x.qr ? `<img class="tr-img" src="${esc(safeUrl(x.qr))}" alt="">` : ''}<button type="button" class="lbtn" onclick="tierQr(${i})"><i class="fa fa-qrcode"></i>${x.qr ? 'Đổi QR' : 'QR riêng'}</button>${x.qr ? `<button type="button" class="pk-x" title="Bỏ QR riêng" onclick="tierQrDel(${i})"><i class="fa fa-xmark"></i></button>` : ''}<button type="button" class="pk-x" onclick="delTier(${i})"><i class="fa fa-xmark"></i></button></div>`).join('');
+  const fb = $('#f-full-box'), f = p.full || {};
+  fb.innerHTML = f.on ? `<div class="tr"><span style="flex:1;font-size:12.5px;color:var(--tx2)">Thanh toán đủ = giá gói khách chọn${f.qr ? '' : ' (QR tự sinh)'}</span>${f.qr ? `<img class="tr-img" src="${esc(safeUrl(f.qr))}" alt="">` : ''}<button type="button" class="lbtn" onclick="tierQr('full')"><i class="fa fa-qrcode"></i>${f.qr ? 'Đổi QR' : 'QR riêng'}</button>${f.qr ? `<button type="button" class="pk-x" onclick="tierQrDel('full')"><i class="fa fa-xmark"></i></button>` : ''}</div>` : '';
+}
+function addTier(list) {
+  collectPay(); const t = myData.pay.tiers;
+  (Array.isArray(list) ? list : [0]).forEach(a => { if (t.length < 6 && !(a && t.some(x => x.amt === a))) t.push({ amt: a }); });
+  renderTiers();
+}
+function delTier(i) { collectPay(); myData.pay.tiers.splice(i, 1); renderTiers(); }
+function tierQr(i) { qrTarget = i; $('#file-qr').click(); }
+function tierQrDel(i) { collectPay(); if (i === 'full') delete myData.pay.full.qr; else if (myData.pay.tiers[i]) delete myData.pay.tiers[i].qr; renderTiers(); }
 function updQrPrev() {
   const u = safeUrl((myData.pay || {}).qr || ''), im = $('#f-qr-prev');
   im.style.display = u ? 'block' : 'none'; if (u) im.src = u; $('#f-qr-del').style.display = u ? 'flex' : 'none';
 }
 async function onQrFile(inp) {
   const f = inp.files[0]; inp.value = ''; if (!f) return;
-  try { toast('Đang tải mã QR...', '#1e40af'); const r = await uploadImage(f, 900); collectPay(); myData.pay.qr = r.u; updQrPrev(); toast('✔ Đã tải mã QR — nhớ bấm Lưu hồ sơ', '#059669'); }
-  catch (e) { toast(e.message, '#dc2626'); }
+  try {
+    toast('Đang tải mã QR...', '#1e40af'); const r = await uploadImage(f, 900); collectPay();
+    if (qrTarget === 'main') myData.pay.qr = r.u; else if (qrTarget === 'full') myData.pay.full.qr = r.u; else if (myData.pay.tiers[qrTarget]) myData.pay.tiers[qrTarget].qr = r.u;
+    updQrPrev(); renderTiers(); toast('✔ Đã tải mã QR — nhớ bấm Lưu hồ sơ', '#059669');
+  } catch (e) { toast(e.message, '#dc2626'); }
 }
 function clearQr() { collectPay(); delete myData.pay.qr; updQrPrev(); }
+/* các mức cọc khách được chọn của 1 thợ: [{k:0|1|..|'full', amt, qr, label}] */
+function payTiers(pay) {
+  pay = pay || {};
+  const t = (Array.isArray(pay.tiers) ? pay.tiers : (pay.deposit > 0 ? [{ amt: pay.deposit }] : [])).map((x, i) => ({ k: i, amt: x.amt, qr: x.qr || '', label: money(x.amt) })).filter(x => x.amt > 0);
+  if (pay.full && pay.full.on) t.push({ k: 'full', amt: 0, qr: pay.full.qr || '', label: 'Thanh toán đủ' });
+  return t;
+}
 function setSeg(k) {
   [['bk', 'seg-bk', 'sg-bk'], ['pf', 'seg-pf', 'sg-pf'], ['ad', 'seg-ad', 'sg-ad']].forEach(([key, sec, btn]) => { $('#' + sec).style.display = k === key ? 'block' : 'none'; $('#' + btn).classList.toggle('on', k === key); });
   if (k === 'ad') renderAdmin();
@@ -1766,7 +1855,7 @@ function openBkForm(quick) {
     <div id="bk-dyn"></div>
     <div class="fg"><label>Họ tên</label><input id="bk-name" value="${esc((myUser && myUser.name) || (me && me.name) || '')}" autocomplete="name"></div>
     <div class="fg"><label>Số điện thoại</label><input id="bk-phone" type="tel" placeholder="09xx xxx xxx" autocomplete="tel" value="${esc((myUser && myUser.phone) || (myData && myData.phone) || '')}"></div>
-    <div id="bk-svc-sec"></div>
+    <div id="bk-svc-sec"></div><div id="bk-pkg-sec"></div>
     <div class="fg"><label>Địa điểm / ghi chú</label><textarea id="bk-note" rows="3" placeholder="Địa điểm chụp, số người, yêu cầu..."></textarea></div>
     <div id="bk-dep"></div>
     <button class="btnp" id="bk-send" onclick="sendBk()"><i class="fa fa-paper-plane"></i>Gửi yêu cầu đặt lịch</button>`);
@@ -1790,11 +1879,31 @@ function renderBkDyn() {
     h += `<div class="fg"><label>Chọn buổi chụp</label>${fs || fc ? `<div class="slots">${slotBtn('s', fs, 'fa-sun', 'Sáng')}${slotBtn('c', fc, 'fa-cloud-sun', 'Chiều')}</div>${fs && fc ? `<button class="slot-all${bkSlot === 'a' ? ' pick' : ''}" onclick="pickSlot('a')">Cả ngày (sáng + chiều)</button>` : ''}` : '<div class="d-full">Ngày này thợ đã có lịch — hãy chọn ngày khác</div>'}</div>`;
   }
   el.innerHTML = h;
-  $('#bk-svc-sec').innerHTML = p && (p.services || []).length ? `<div class="fg"><label>Dịch vụ</label><select id="bk-svc"><option value="">— Chọn —</option>${p.services.map(x => `<option>${esc(x)}</option>`).join('')}</select></div>` : '';
+  $('#bk-svc-sec').innerHTML = p && (p.services || []).length ? `<div class="fg"><label>Dịch vụ</label><select id="bk-svc" onchange="renderBkPkg()"><option value="">— Chọn —</option>${p.services.map(x => `<option>${esc(x)}</option>`).join('')}</select></div>` : '';
   if (keep && $('#bk-svc')) $('#bk-svc').value = keep;
-  const dep = (p && p.pay && p.pay.deposit) || 0;
-  $('#bk-dep').innerHTML = dep ? `<div class="bk-dep"><i class="fa fa-wallet"></i> Tiền cọc giữ lịch: <b>${money(dep)}</b></div>` : '';
+  if (!bkPro || bkPkgPro !== bkPro.id) { bkPkg = -1; bkDep = null; bkPkgPro = bkPro ? bkPro.id : null; }
+  renderBkPkg();
 }
+let bkPkg = -1, bkDep = null, bkPkgPro = null;
+function renderBkPkg() {
+  const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : '', a = p ? pkgsOf(p, sv) : [], el = $('#bk-pkg-sec'); if (!el) return;
+  if (bkPkg >= a.length || sv !== renderBkPkg.sv) bkPkg = -1; renderBkPkg.sv = sv;
+  el.innerHTML = a.length ? `<div class="fg"><label>Chọn gói giá</label>${a.map((g, i) => `<div class="sg-i${bkPkg === i ? ' on' : ''}" onclick="pickPkg(${i})"><div style="flex:1;min-width:0"><b>${esc(g.n)}</b></div><b style="color:var(--ok);white-space:nowrap">${g.p ? money(g.p) : ''}</b></div>`).join('')}</div>` : '';
+  renderBkDep();
+}
+function pickPkg(i) { bkPkg = bkPkg === i ? -1 : i; renderBkPkg(); }
+function curPkg() { const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : ''; return p && bkPkg >= 0 ? pkgsOf(p, sv)[bkPkg] || null : null; }
+function depAmt(t) { if (!t) return 0; if (t.k === 'full') { const g = curPkg(); return g ? g.p : 0; } return t.amt; }
+function renderBkDep() {
+  const el = $('#bk-dep'); if (!el) return;
+  const ts = payTiers(bkPro && bkPro.pay);
+  if (!ts.length) { el.innerHTML = ''; bkDep = null; return; }
+  if (bkDep === null || !ts.some(x => x.k === bkDep)) bkDep = ts[0].k;
+  const cur = ts.find(x => x.k === bkDep), amt = depAmt(cur);
+  el.innerHTML = `<div class="bk-dep"><i class="fa fa-wallet"></i> Chọn mức cọc giữ lịch</div><div class="dep-opts">${ts.map(x => `<div class="chip${x.k === bkDep ? ' on' : ''}" onclick="pickDep(${typeof x.k === 'number' ? x.k : "'full'"})">${esc(x.label)}</div>`).join('')}</div>` +
+    (cur.k === 'full' && !amt ? '<div class="bk-m">Hãy chọn một gói giá ở trên để tính số tiền thanh toán đủ.</div>' : `<div class="bk-m">Số tiền: <b>${money(amt)}</b> — mã QR hiện sau khi gửi yêu cầu.</div>`);
+}
+function pickDep(k) { bkDep = k; renderBkDep(); }
 async function sendBk() {
   const p = bkPro, d = calSel.pro, name = $('#bk-name').value.trim(), phone = $('#bk-phone').value.trim();
   if (!p) return toast('⚠ Chọn thợ chụp', '#dc2626');
@@ -1803,9 +1912,12 @@ async function sendBk() {
   const b0 = busyOf(p, d); if (bkSlot === 'a' ? b0.length : b0.includes(bkSlot)) return toast('Buổi này đã có lịch', '#dc2626');
   if (!name) return toast('⚠ Nhập họ tên', '#dc2626');
   if (digits(phone).length < 9) return toast('⚠ Nhập số điện thoại hợp lệ', '#dc2626');
-  const sv = $('#bk-svc');
+  const sv = $('#bk-svc'), ts = payTiers(p.pay), ct = ts.find(x => x.k === bkDep) || null, pk = curPkg();
+  if (ct && ct.k === 'full' && !depAmt(ct)) return toast('⚠ Chọn gói giá để thanh toán đủ (hoặc chọn mức cọc khác)', '#dc2626');
   const b = { proId: p.id, proName: p.name, custName: name, custPhone: phone, date: d, slot: bkSlot, service: sv ? sv.value : '',
-    note: $('#bk-note').value.trim(), deposit: (p.pay && p.pay.deposit) || 0, status: 'pending', createdAt: Date.now() };
+    note: $('#bk-note').value.trim(), deposit: depAmt(ct), status: 'pending', createdAt: Date.now() };
+  if (ct) b.depTier = ct.k;
+  if (pk) { b.pkg = pk.n; b.pkgPrice = pk.p || 0; }
   if (me) b.custUid = me.uid;
   const btn = $('#bk-send'); btn.disabled = true;
   try { b.id = await Store.addBk(b); notifyZaloBooking(p, b); bkSlot = null; if (me) loadMine(); if (me && myUser && !myUser.phone) { myUser = { name: myUser.name || name, phone }; Store.saveUser(me.uid, myUser).catch(() => {}); } payStep(b); toast('✔ Đã gửi yêu cầu — thợ sẽ liên hệ lại bạn', '#059669'); }
@@ -1814,19 +1926,21 @@ async function sendBk() {
 function copyTx(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('✔ Đã sao chép', '#059669')).catch(() => prompt('Sao chép:', t)); }
 function payStep(b) {
   calMode = 'view';
-  const p = pros.find(x => x.id === b.proId) || {}, pay = p.pay || {}, dep = b.deposit || 0, has = dep > 0 && (pay.accNo || pay.qr);
-  const content = `COC ${dayShort(b.date)} ${digits(b.custPhone)}`, bk = BANKS.find(x => x[1] === pay.bin);
+  const p = pros.find(x => x.id === b.proId) || {}, pay = p.pay || {}, dep = b.deposit || 0;
+  const tier = b.depTier === undefined ? null : payTiers(pay).find(x => x.k === b.depTier) || null, tqr = tier && tier.qr ? safeUrl(tier.qr) : '';
+  const has = dep > 0 && (pay.accNo || pay.qr || tqr);
+  const content = `${b.depTier === 'full' ? 'TT' : 'COC'} ${dayShort(b.date)} ${digits(b.custPhone)}`, bk = BANKS.find(x => x[1] === pay.bin);
   const gen = pay.accNo && bk ? `https://img.vietqr.io/image/${pay.bin}-${pay.accNo}-compact2.png?amount=${dep}&addInfo=${encodeURIComponent(content)}` : '';
-  const qr = pay.qr ? safeUrl(pay.qr) : gen;
+  const qr = tqr || gen || (pay.qr ? safeUrl(pay.qr) : '');
   const dl = pay.accNo && bk ? `https://dl.vietqr.io/pay?app=${bk[2]}&ba=${pay.accNo}@${bk[2]}&am=${dep}&tn=${encodeURIComponent(content)}` : '';
   const row = (k, v, cp) => `<div class="pay-row"><span>${k}</span><b>${esc(v)}</b>${cp ? `<button onclick="copyTx('${esc(cp)}')">Chép</button>` : ''}</div>`;
   const ph = digits(p.phone);
-  openBkM(`<div class="bk-hd"><b>${has ? 'Đặt cọc giữ lịch' : 'Đã gửi yêu cầu'}</b>${xBtn}</div>
+  openBkM(`<div class="bk-hd"><b>${has ? (b.depTier === 'full' ? 'Thanh toán đủ' : 'Đặt cọc giữ lịch') : 'Đã gửi yêu cầu'}</b>${xBtn}</div>
     <div class="bk-ok"><i class="fa fa-circle-check"></i>${dayShort(b.date)} · ${slotTxt(b.slot)} · ${esc(p.name || b.proName)}</div>
-    ${has ? `${pay.accNo ? row('Ngân hàng', pay.bank || 'Khác') + row('Số tài khoản', pay.accNo, pay.accNo) : ''}${row('Số tiền cọc', money(dep), String(dep))}${row('Nội dung', content, content)}
+    ${has ? `${pay.accNo ? row('Ngân hàng', pay.bank || 'Khác') + row('Số tài khoản', pay.accNo, pay.accNo) : ''}${row(b.depTier === 'full' ? 'Số tiền thanh toán' : 'Số tiền cọc', money(dep), String(dep))}${row('Nội dung', content, content)}
       ${pay.note ? `<div class="bk-m" style="margin-top:8px">${esc(pay.note)}</div>` : ''}
       ${qr ? `<img class="pay-qr" src="${esc(qr)}" alt="Mã QR chuyển khoản" onerror="this.remove()">` : ''}
-      ${dl ? `<a class="btnp" href="${esc(dl)}" target="_blank" rel="noopener"><i class="fa fa-bolt"></i>Thanh toán nhanh ${money(dep)}</a>` : ''}
+      ${dl ? `${tqr ? '' : `<a class="btnp" href="${esc(dl)}" target="_blank" rel="noopener"><i class="fa fa-bolt"></i>Thanh toán nhanh ${money(dep)}</a>`}` : ''}
       ${qr ? `<a class="btnl" href="${esc(qr)}" target="_blank" rel="noopener"><i class="fa fa-download"></i>Mở / lưu mã QR</a>` : ''}
       <button class="btnp" style="background:var(--ok)" onclick="markPaid('${esc(b.id)}')"><i class="fa fa-check"></i>Tôi đã chuyển cọc</button>
       <button class="btnl" onclick="closeBk()">Để sau</button>`
@@ -1843,7 +1957,7 @@ function watchBks() {
   unwatchBks = Store.watchBks(me.uid, list => {
     const old = bkSeen; proBks = list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const pend = proBks.filter(b => b.status === 'pending' || b.status === 'paid');
-    if (old) { const nw = proBks.filter(b => !old.has(b.id)); if (nw.length) toast(`🔔 Khách mới đặt lịch: ${nw[0].custName} · ${dayShort(nw[0].date)}`, '#059669'); }
+    if (old) { const nw = proBks.filter(b => !old.has(b.id) && !b.manual); if (nw.length) toast(`🔔 Khách mới đặt lịch: ${nw[0].custName} · ${dayShort(nw[0].date)}`, '#059669'); }
     else if (pend.length) toast(`🔔 Bạn có ${pend.length} yêu cầu đặt lịch chờ xử lý`, '#d97706');
     bkSeen = new Set(proBks.map(b => b.id)); renderBks(); updBadge();
   });
@@ -1854,8 +1968,8 @@ function updBadge() {
   if (n) ['#bn-me', '#tb-me'].forEach(q => $(q).insertAdjacentHTML('beforeend', `<i class="nbadge">${n}</i>`));
   $('#bk-badge').textContent = nb ? ` (${nb})` : ''; $('#ad-badge').textContent = na ? ` (${na})` : '';
 }
-async function proAct(id, st) {
-  const b = proBks.find(x => x.id === id); if (!b) return;
+async function proAct(id, st, bObj) {
+  const b = bObj || proBks.find(x => x.id === id); if (!b) return;
   if (!myData || !myData.name) return toast('⚠ Hãy lưu hồ sơ thợ ảnh trước', '#d97706');
   if (st === 'cancelled' && !confirm('Từ chối / hủy lịch này?')) return;
   try {
@@ -1868,6 +1982,7 @@ async function proAct(id, st) {
       if (set.size) busy[b.date] = [...set]; else delete busy[b.date];
       await persist(); renderMeCal();
     }
+    if (st === 'confirmed') remSet(b); else if (st === 'cancelled') remDel(id);
     toast(st === 'confirmed' ? '✔ Đã chốt lịch — ngày được đánh dấu đỏ trên lịch' : 'Đã cập nhật', '#059669');
   } catch (e) { toast('Lỗi: ' + (e.code || e.message), '#dc2626'); }
 }
@@ -1877,10 +1992,10 @@ function bkCard(b) {
   const acts = live ? `<button class="bkb main" onclick="proAct('${id}','confirmed')"><i class="fa fa-lock"></i> Chốt lịch</button><button class="bkb" onclick="proAct('${id}','cancelled')">Từ chối</button>`
     : b.status === 'confirmed' ? `<button class="bkb" onclick="proAct('${id}','cancelled')">Hủy lịch đã chốt</button><button class="bkb" style="color:#dc2626" onclick="delBk('${id}')">Xóa</button>`
     : `<button class="bkb" style="color:#dc2626" onclick="delBk('${id}')">Xóa</button>`;
-  return `<div class="bk-c"><div class="bk-r"><b>${dayLabel(b.date)}</b><span class="bk-st" style="color:${st[1]};background:${st[2]}">${st[0]}</span></div>
-    <div class="bk-m">${slotTxt(b.slot)} · ${esc(b.custName)} · <a href="tel:${esc(digits(b.custPhone))}">${esc(b.custPhone)}</a></div>
-    ${b.service ? `<div class="bk-m">Dịch vụ: ${esc(b.service)}</div>` : ''}${b.note ? `<div class="bk-m">${esc(b.note)}</div>` : ''}
-    ${b.deposit ? `<div class="bk-m">Cọc: ${money(b.deposit)}${b.status === 'paid' ? ' — khách báo đã chuyển' : ''}</div>` : ''}<div class="bk-a">${acts}</div></div>`;
+  return `<div class="bk-c"><div class="bk-r"><b>${dayLabel(b.date)}${b.manual ? '<span class="tag-man">Lịch thủ công</span>' : ''}</b><span class="bk-st" style="color:${st[1]};background:${st[2]}">${st[0]}</span></div>
+    <div class="bk-m">${slotTxt(b.slot)} · ${esc(b.custName)}${b.custPhone ? ` · <a href="tel:${esc(digits(b.custPhone))}">${esc(b.custPhone)}</a>` : ''}</div>
+    ${b.service ? `<div class="bk-m">Dịch vụ: ${esc(b.service)}</div>` : ''}${b.pkg ? `<div class="bk-m">Gói: ${esc(b.pkg)}${b.pkgPrice ? ' · ' + money(b.pkgPrice) : ''}</div>` : ''}${b.note ? `<div class="bk-m">${esc(b.note)}</div>` : ''}
+    ${b.deposit ? `<div class="bk-m">${b.depTier === 'full' ? 'Thanh toán đủ' : 'Cọc'}: ${money(b.deposit)}${b.status === 'paid' ? ' — khách báo đã chuyển' : ''}</div>` : ''}<div class="bk-a">${acts}</div></div>`;
 }
 function renderBks() {
   const nc = proBks.filter(b => b.status === 'cancelled').length;
@@ -1890,7 +2005,7 @@ function renderBks() {
 async function delBk(id) {
   const b = proBks.find(x => x.id === id); if (!b) return;
   if (!confirm(b.status === 'confirmed' ? 'Xóa lịch đã chốt khỏi danh sách? Ngày trên lịch vẫn giữ nguyên trạng thái.' : 'Xóa lịch này khỏi danh sách?')) return;
-  try { await Store.delBk(id); toast('Đã xóa lịch', '#059669'); }
+  try { await Store.delBk(id); remDel(id); toast('Đã xóa lịch', '#059669'); }
   catch (e) { toast('Lỗi: ' + (e.code || e.message), '#dc2626'); }
 }
 async function delCancelled() {
@@ -1899,6 +2014,51 @@ async function delCancelled() {
   try { for (const id of ids) await Store.delBk(id); toast('Đã xóa lịch đã hủy', '#059669'); }
   catch (e) { toast('Lỗi: ' + (e.code || e.message), '#dc2626'); }
 }
+/* ----- Sổ tay lịch chốt thủ công ----- */
+let manSlot = 's';
+function openManualBk() {
+  if (!me) return; if (!myData || !myData.name) return toast('⚠ Hãy lưu hồ sơ thợ ảnh trước', '#d97706');
+  manSlot = 's'; const sv = myData.services || [];
+  openBkM(`<div class="bk-hd"><b>Thêm lịch chốt thủ công</b>${xBtn}</div>
+    <div class="bk-m" style="margin-bottom:10px">Dành cho khách gọi điện đặt trực tiếp. Lịch được lưu vào sổ, đánh dấu kín trên lịch chụp và Bot Zalo sẽ nhắc bạn trước ngày chụp.</div>
+    <div class="fg"><label>Ngày chụp</label><input type="date" id="mn-date" min="${todayStr()}"></div>
+    <div class="fg"><label>Buổi</label><div class="dep-opts" id="mn-slot"></div></div>
+    <div class="fg"><label>Tên khách</label><input id="mn-name" maxlength="100"></div>
+    <div class="fg"><label>Số điện thoại</label><input id="mn-phone" type="tel" maxlength="25"></div>
+    ${sv.length ? `<div class="fg"><label>Dịch vụ</label><select id="mn-svc"><option value="">— Chọn —</option>${sv.map(x => `<option>${esc(x)}</option>`).join('')}</select></div>` : ''}
+    <div class="fg"><label>Gói / giá thỏa thuận</label><input id="mn-pkg" maxlength="150" placeholder="Vd: Gói 800.000đ chỉnh 30 file"></div>
+    <div class="fg"><label>Ghi chú (địa điểm, yêu cầu...)</label><textarea id="mn-note" rows="3" maxlength="400"></textarea></div>
+    <button class="btnp" id="mn-save" onclick="saveManual()"><i class="fa fa-floppy-disk"></i>Lưu vào sổ lịch</button>`);
+  renderManSlot();
+}
+function renderManSlot() { $('#mn-slot').innerHTML = [['s', 'Sáng'], ['c', 'Chiều'], ['a', 'Cả ngày']].map(([k, t]) => `<div class="chip${manSlot === k ? ' on' : ''}" onclick="manSlot='${k}';renderManSlot()">${t}</div>`).join(''); }
+async function saveManual() {
+  const d = $('#mn-date').value, name = $('#mn-name').value.trim();
+  if (!d || d < todayStr()) return toast('⚠ Chọn ngày chụp từ hôm nay', '#dc2626');
+  if (!name) return toast('⚠ Nhập tên khách', '#dc2626');
+  collectForm();
+  const bz = new Set((myData.busy || {})[d] || []);
+  if (slotsOf(manSlot).some(k => bz.has(k)) && !confirm('Buổi này đã có lịch. Vẫn thêm?')) return;
+  const sv = $('#mn-svc'), b = { proId: me.uid, proName: myData.name, custName: name, custPhone: $('#mn-phone').value.trim(), date: d, slot: manSlot,
+    service: sv ? sv.value : '', note: $('#mn-note').value.trim(), deposit: 0, status: 'pending', manual: true, createdAt: Date.now() };
+  const pk = $('#mn-pkg').value.trim(); if (pk) b.pkg = pk;
+  const btn = $('#mn-save'); btn.disabled = true;
+  try { b.id = await Store.addBk(b); await proAct(b.id, 'confirmed', { ...b, status: 'pending' }); closeBk(); toast('✔ Đã lưu vào sổ — Bot Zalo sẽ nhắc bạn trước ngày chụp', '#059669'); }
+  catch (e) { toast('Lỗi: ' + (e.code || e.message), '#dc2626'); btn.disabled = false; }
+}
+/* ----- Nhắc lịch qua Zalo Bot (Worker lưu & gửi theo giờ) ----- */
+async function bridgePost(obj, auth) {
+  if (!zaloReady()) throw new Error('no bridge');
+  if (auth) { const t = await Store.token(); if (!t) throw new Error('Chưa đăng nhập'); obj.idToken = t; }
+  const r = await fetch(ZALO_BRIDGE_URL, { method: 'POST', body: JSON.stringify(obj) });
+  return r.json();
+}
+function remSet(b) {
+  if (!me || DEMO) return;
+  bridgePost({ action: 'reminder_set', booking: { id: b.id, date: b.date, slot: b.slot, custName: b.custName, custPhone: b.custPhone || '', service: b.service || '', pkg: b.pkg || '', note: b.note || '' } }, true)
+    .then(d => { if (d && d.ok === false) console.warn('reminder_set', d); }).catch(e => console.warn('reminder_set', e));
+}
+function remDel(id) { if (!me || DEMO) return; bridgePost({ action: 'reminder_del', id }, true).catch(e => console.warn('reminder_del', e)); }
 /* ----- Đánh giá sao ----- */
 function renderRvPick() { $('#rv-pick').innerHTML = [1, 2, 3, 4, 5].map(i => `<button class="${i <= rvStars ? 'on' : ''}" onclick="rvStars=${i};renderRvPick()">★</button>`).join(''); }
 function openReview(bid) {
@@ -1936,7 +2096,7 @@ function bkMineCard(b) {
   if (b.status === 'pending' || b.status === 'paid') acts += `<button class="bkb" onclick="cusCancel('${id}')">Hủy lịch</button>`;
   if (b.status === 'confirmed') acts += `<button class="bkb main" onclick="openReview('${id}')">${rv ? 'Sửa đánh giá' : 'Đánh giá'}</button>`;
   return `<div class="bk-c"><div class="bk-r"><b>${dayLabel(b.date)}</b><span class="bk-st" style="color:${st[1]};background:${st[2]}">${st[0]}</span></div>
-    <div class="bk-m">${slotTxt(b.slot)} · ${esc(b.proName)}</div>${b.service ? `<div class="bk-m">Dịch vụ: ${esc(b.service)}</div>` : ''}
+    <div class="bk-m">${slotTxt(b.slot)} · ${esc(b.proName)}</div>${b.service ? `<div class="bk-m">Dịch vụ: ${esc(b.service)}${b.pkg ? ' · ' + esc(b.pkg) : ''}</div>` : ''}
     ${b.deposit ? `<div class="bk-m">Cọc: ${money(b.deposit)}</div>` : ''}${rv ? `<div class="bk-m">${starsHtml(rv.stars)}</div>` : ''}${acts ? `<div class="bk-a">${acts}</div>` : ''}</div>`;
 }
 function renderMine() {
@@ -1981,18 +2141,26 @@ async function refreshZalo() {   // gọi khi thợ mở hồ sơ
   catch (e) { console.warn('Zalo bridge:', e); }
 }
 
-function zaloConnect() {   // bấm nút xanh → bảng hướng dẫn + nút sao chép mã
+let zaloCode = '';
+async function zaloConnect() {   // bấm nút xanh → lấy mã ngắn → bảng hướng dẫn + nút sao chép
   if (!me || zaloOn()) return;
   if (!zaloReady()) return toast('⚠ Chưa dán link ZALO_BRIDGE_URL vào code', '#dc2626');
-  const cmd = '/start ' + me.uid;
+  if (DEMO) return toast('Chế độ DEMO chưa hỗ trợ kết nối Zalo — cần bật Firebase', '#d97706');
+  openBkM(`<div class="bk-hd"><b>Kết nối thông báo Zalo</b>${xBtn}</div><div class="bk-m" id="zalo-st" style="text-align:center;padding:18px">⏳ Đang tạo mã kết nối...</div>`);
+  let d;
+  try { d = await bridgePost({ action: 'new_code' }, true); } catch (e) { d = { error: e.message || String(e) }; }
+  if (!$('#bk-modal').classList.contains('on')) return;
+  if (!d || !d.ok || !d.code) { $('#zalo-st').textContent = '⚠ Không tạo được mã: ' + ((d && d.error) || 'lỗi kết nối') + '\nHãy cập nhật Worker bản mới và đăng nhập lại.'; return; }
+  zaloCode = d.code; const cmd = '/start ' + zaloCode;
   openBkM(`<div class="bk-hd"><b>Kết nối thông báo Zalo</b>${xBtn}</div>
     <div class="bk-m" style="line-height:1.7;margin-bottom:10px">
       <b>1.</b> Bấm <b>Sao chép mã</b> bên dưới.<br>
       <b>2.</b> Bấm <b>Mở chat với Bot</b>, rồi bấm <b>Nhắn tin</b> trong trang Zalo.<br>
       <b>3.</b> Dán mã vào khung chat và bấm <b>Gửi</b>.<br>
-      <b>4.</b> Quay lại trang này, hệ thống tự nhận kết nối trong vài giây.
+      <b>4.</b> Quay lại trang này, hệ thống tự nhận kết nối (có thể mất tới 1 phút).
     </div>
-    <div id="zalo-cmd" style="background:var(--bg);border-radius:10px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all;user-select:all;text-align:center">${esc(cmd)}</div>
+    <div id="zalo-cmd" style="background:var(--bg);border-radius:10px;padding:14px;font-family:monospace;font-size:18px;letter-spacing:1px;font-weight:700;word-break:break-all;user-select:all;text-align:center">${esc(cmd)}</div>
+    <div class="bk-m" style="text-align:center;margin-top:4px">Mã có hiệu lực 15 phút, mỗi tài khoản một mã riêng.</div>
     <button class="btnp" id="zalo-copy" type="button" onclick="zaloCopy()"><i class="fa fa-copy"></i>Sao chép mã</button>
     <button class="btnl" type="button" onclick="zaloOpenBot()"><i class="fa fa-arrow-up-right-from-square"></i>Mở chat với Bot</button>
     <button class="btnl" type="button" onclick="startZaloPolling()"><i class="fa fa-rotate"></i>Tôi đã gửi mã — kiểm tra</button>
@@ -2000,13 +2168,13 @@ function zaloConnect() {   // bấm nút xanh → bảng hướng dẫn + nút s
   zaloPendingAt = Date.now(); startZaloPolling();
 }
 function zaloCopy() {
-  const cmd = '/start ' + me.uid, btn = $('#zalo-copy');
+  const cmd = '/start ' + zaloCode, btn = $('#zalo-copy');
   const ok = () => { if (btn) btn.innerHTML = '<i class="fa fa-check"></i>Đã sao chép — hãy dán vào chat với Bot'; toast('✔ Đã sao chép mã', '#059669'); };
   const manual = () => { const el = $('#zalo-cmd'); if (el) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } toast('Hãy giữ vào mã và chọn Sao chép', '#d97706'); };
   (navigator.clipboard ? navigator.clipboard.writeText(cmd) : Promise.reject()).then(ok).catch(manual);
 }
 function zaloOpenBot() {
-  window.open(ZALO_BOT_LINK + (ZALO_BOT_LINK.includes('?') ? '&' : '?') + 'start=' + encodeURIComponent(me.uid), '_blank', 'noopener');
+  window.open(ZALO_BOT_LINK, '_blank', 'noopener');
   zaloPendingAt = Date.now(); startZaloPolling();
 }
 
@@ -2028,7 +2196,7 @@ async function zaloCheck() {
     const d = await zaloFetchState(uid);
     console.log('Zalo bridge:', d);
     if (zaloIsOn(d) && me && me.uid === uid) { zaloLinked(); return; }
-    zaloNote((d && d.error ? 'Cầu nối báo lỗi: ' + d.error : 'Cầu nối hoạt động, chưa thấy mã /start của bạn.') + '\nCầu nối trả về: ' + JSON.stringify(d).slice(0, 150));
+    zaloNote(d && d.error ? 'Cầu nối báo lỗi: ' + d.error : (Date.now() - zaloPendingAt > 25000 ? 'Chưa thấy kết nối. Nếu Bot đã báo “Kết nối thành công”, hệ thống cần thêm tối đa 1 phút để đồng bộ — cứ để bảng này mở.\nNếu Bot báo mã sai/hết hạn, hãy đóng bảng và bấm kết nối lại để lấy mã mới.' : 'Đang chờ Bot nhận mã của bạn...'));
   } catch (e) { console.warn('Zalo bridge:', e); zaloNote('Không gọi được cầu nối Cloudflare Worker (' + (e.message || e) + '). Kiểm tra link Worker và cấu hình CORS (Access-Control-Allow-Origin).'); }
   finally { zaloBusy = false; }
 }
@@ -2046,10 +2214,11 @@ function notifyZaloBooking(p, b) {   // gọi sau khi khách đặt lịch thàn
       '👤 Khách: ' + b.custName,
       '📞 SĐT: ' + b.custPhone,
       '💬 Chat Zalo nhanh: https://zalo.me/' + ph,
-      '📸 Gói chụp: ' + (b.service || 'Chưa chọn'),
+      '📸 Dịch vụ: ' + (b.service || 'Chưa chọn'),
+      ...(b.pkg ? ['🏷️ Gói: ' + b.pkg + (b.pkgPrice ? ' (' + money(b.pkgPrice) + ')' : '')] : []),
       '📅 Ngày giờ: ' + dayShort(b.date) + ' · ' + slotTxt(b.slot),
       ...(b.note ? ['📝 Ghi chú: ' + b.note] : []),
-      ...(b.deposit ? ['💰 Tiền cọc thợ yêu cầu: ' + money(b.deposit) + ' (khách chưa báo đã chuyển)'] : [])].join('\n').slice(0, 2000);
+      ...(b.deposit ? ['💰 ' + (b.depTier === 'full' ? 'Khách chọn thanh toán đủ: ' : 'Khách chọn mức cọc: ') + money(b.deposit) + ' (khách chưa báo đã chuyển)'] : [])].join('\n').slice(0, 2000);
     // body là chuỗi (text/plain) để không bị chặn CORS preflight của Apps Script
     fetch(ZALO_BRIDGE_URL, { method: 'POST', body: JSON.stringify({ action: 'send_booking', photographerUid: p.id, messageText }) })
       .catch(e => console.warn('Zalo bridge send:', e));
