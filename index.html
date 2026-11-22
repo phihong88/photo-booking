@@ -1199,7 +1199,6 @@ function renderDetail() {
       ${p.bio ? `<div class="d-bio">${esc(p.bio)}</div>` : ''}
       ${p.price ? `<div class="d-price"><i class="fa fa-tag"></i>${esc(p.price)}</div>` : ''}
       ${payTiers(p.pay).length ? `<div class="d-price" style="color:#b45309;background:#fffbeb;margin-left:6px"><i class="fa fa-wallet"></i>Cọc giữ lịch: ${payTiers(p.pay).map(x => x.label).join(' / ')}</div>` : ''}
-      ${pkgsHtml(p)}
       ${phone || p.email ? `<div style="margin-top:12px;font-size:13px;color:var(--tx2);line-height:1.9">
         ${phone ? `<div><i class="fa fa-phone" style="width:18px"></i>${esc(p.phone)}</div>` : ''}
         ${p.email ? `<div><i class="fa fa-envelope" style="width:18px"></i><a href="mailto:${esc(p.email)}" style="color:var(--p)">${esc(p.email)}</a></div>` : ''}
