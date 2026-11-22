@@ -524,6 +524,13 @@ a.btnp,a.btnl{text-decoration:none}
   .alb-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
   #toast{top:70px}
 }
+/* ===== v6: album hiển thị đủ khung ảnh (không cắt) ===== */
+.ph-grid{display:block;column-count:3;column-gap:6px}
+.ph{aspect-ratio:auto;break-inside:avoid;margin:0 0 6px;border-radius:8px}
+.ph img{height:auto;object-fit:contain;min-height:90px;background:#f1f5f9}
+.ph:hover img{transform:none}
+@media(min-width:900px){.ph-grid{column-count:4}}
+@media(max-width:420px){.ph-grid{column-count:2}}
 /* ===== v5: banner xám, icon trắng đồng bộ, album hiển thị đủ ảnh ===== */
 .alb-cv{background:#f1f5f9}
 .alb-cv .ss{background:#f1f5f9}
@@ -1198,7 +1205,7 @@ function renderDetail() {
     <div class="d-sec">
       ${p.bio ? `<div class="d-bio">${esc(p.bio)}</div>` : ''}
       ${p.price ? `<div class="d-price"><i class="fa fa-tag"></i>${esc(p.price)}</div>` : ''}
-      ${payTiers(p.pay).length ? `<div class="d-price" style="color:#b45309;background:#fffbeb;margin-left:6px"><i class="fa fa-wallet"></i>Cọc giữ lịch: ${payTiers(p.pay).map(x => x.label).join(' / ')}</div>` : ''}
+      ${payTiers(p.pay).length ? `<div class="d-price" style="color:#b45309;background:#fffbeb;margin-left:6px"><i class="fa fa-wallet"></i>${depFrom(p.pay)}</div>` : ''}
       ${phone || p.email ? `<div style="margin-top:12px;font-size:13px;color:var(--tx2);line-height:1.9">
         ${phone ? `<div><i class="fa fa-phone" style="width:18px"></i>${esc(p.phone)}</div>` : ''}
         ${p.email ? `<div><i class="fa fa-envelope" style="width:18px"></i><a href="mailto:${esc(p.email)}" style="color:var(--p)">${esc(p.email)}</a></div>` : ''}
@@ -1818,6 +1825,17 @@ async function onQrFile(inp) {
 }
 function clearQr() { collectPay(); delete myData.pay.qr; updQrPrev(); }
 /* các mức cọc khách được chọn của 1 thợ: [{k:0|1|..|'full', amt, qr, label}] */
+function depFrom(pay) {
+  const n = payTiers(pay).filter(x => x.k !== 'full').map(x => x.amt);
+  return n.length ? 'Cọc từ ' + money(Math.min(...n)) : 'Cọc: Thanh toán đủ';
+}
+/* mức cọc theo buổi: đặt cả ngày → bỏ mức thấp nhất (vd 1 buổi: 100k–trả đủ, 1 ngày: 200k–trả đủ) */
+function payTiersFor(pay, slot) {
+  const ts = payTiers(pay), nums = ts.filter(x => x.k !== 'full');
+  if (slot !== 'a' || nums.length < 2) return ts;
+  const lo = Math.min(...nums.map(x => x.amt));
+  return ts.filter(x => x.k === 'full' || x.amt > lo);
+}
 function payTiers(pay) {
   pay = pay || {};
   const t = (Array.isArray(pay.tiers) ? pay.tiers : (pay.deposit > 0 ? [{ amt: pay.deposit }] : [])).map((x, i) => ({ k: i, amt: x.amt, qr: x.qr || '', label: money(x.amt) })).filter(x => x.amt > 0);
@@ -1895,7 +1913,7 @@ function curPkg() { const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : ''
 function depAmt(t) { if (!t) return 0; if (t.k === 'full') { const g = curPkg(); return g ? g.p : 0; } return t.amt; }
 function renderBkDep() {
   const el = $('#bk-dep'); if (!el) return;
-  const ts = payTiers(bkPro && bkPro.pay);
+  const ts = payTiersFor(bkPro && bkPro.pay, bkSlot);
   if (!ts.length) { el.innerHTML = ''; bkDep = null; return; }
   if (bkDep === null || !ts.some(x => x.k === bkDep)) bkDep = ts[0].k;
   const cur = ts.find(x => x.k === bkDep), amt = depAmt(cur);
@@ -1911,7 +1929,7 @@ async function sendBk() {
   const b0 = busyOf(p, d); if (bkSlot === 'a' ? b0.length : b0.includes(bkSlot)) return toast('Buổi này đã có lịch', '#dc2626');
   if (!name) return toast('⚠ Nhập họ tên', '#dc2626');
   if (digits(phone).length < 9) return toast('⚠ Nhập số điện thoại hợp lệ', '#dc2626');
-  const sv = $('#bk-svc'), ts = payTiers(p.pay), ct = ts.find(x => x.k === bkDep) || null, pk = curPkg();
+  const sv = $('#bk-svc'), ts = payTiersFor(p.pay, bkSlot), ct = ts.find(x => x.k === bkDep) || null, pk = curPkg();
   if (ct && ct.k === 'full' && !depAmt(ct)) return toast('⚠ Chọn gói giá để thanh toán đủ (hoặc chọn mức cọc khác)', '#dc2626');
   const b = { proId: p.id, proName: p.name, custName: name, custPhone: phone, date: d, slot: bkSlot, service: sv ? sv.value : '',
     note: $('#bk-note').value.trim(), deposit: depAmt(ct), status: 'pending', createdAt: Date.now() };
