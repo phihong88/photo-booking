@@ -210,6 +210,9 @@ input,textarea,select{font-family:inherit}
 #coord-lbl{font-size:12px;color:var(--tx2);margin-top:8px;display:flex;align-items:center;gap:6px}
 #coord-lbl.ok{color:var(--ok);font-weight:700}
 .svc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pk-h{cursor:pointer;user-select:none}.pk-h .pk-cnt{color:var(--tx2);font-weight:600;font-size:12px}.pk-h .pk-chev{margin-left:auto;color:var(--tx2);transition:transform .2s}
+.pk-box .pk-body{display:none;margin-top:8px}.pk-box.open .pk-body{display:block}.pk-box.open .pk-chev{transform:rotate(180deg)}.pk-box.open .pk-h{margin-bottom:0}
+#me-cal{max-width:560px;margin:0 auto}
 .pk-box{border:1.5px solid var(--bdr);border-radius:12px;padding:10px;margin-top:10px;background:var(--sur)}
 .pk-h{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .pk-r{display:flex;gap:6px;margin-bottom:6px;align-items:center}
@@ -693,7 +696,8 @@ a.btnp,a.btnl{text-decoration:none}
       <div class="frm" id="zalo-wrap" style="padding-bottom:0"><button type="button" id="zalo-btn" class="btnp" onclick="zaloConnect()"></button></div>
       <div class="pend" id="pend-banner" style="display:none"><i class="fa fa-hourglass-half"></i> Hồ sơ đang chờ quản trị viên phê duyệt. Sau khi được duyệt, hồ sơ mới hiển thị công khai trên trang chủ.</div>
       <div class="frm" id="seg-bk" style="display:none">
-        <div class="sdiv"><i class="fa fa-bell"></i>Lịch chụp — khách đặt lịch của tôi</div>
+        <div class="sdiv"><i class="fa fa-bell"></i>Lịch chụp — khách đặt lịch của tôi<span class="sp"></span><button class="addbtn" type="button" id="cal-tg" onclick="toggleMeCal()"><i class="fa fa-calendar-days"></i> Xem lịch</button></div>
+        <div id="me-cal-wrap" style="display:none"><div id="me-cal"></div></div>
         <button class="btnp" type="button" style="margin-bottom:12px" onclick="openManualBk()"><i class="fa fa-book-medical"></i>Thêm lịch chốt thủ công (sổ tay)</button>
         <div id="bk-pro"></div>
         <div class="sdiv" style="margin-top:22px"><i class="fa fa-calendar-check"></i>Lịch tôi đã đặt</div>
@@ -754,9 +758,6 @@ a.btnp,a.btnl{text-decoration:none}
         <label class="toggle">Hiển thị công khai trên bản đồ<span class="sw"><input type="checkbox" id="f-visible" checked><span></span></span></label>
 
         <button class="btnp" id="btn-save" onclick="saveProfile()"><i class="fa fa-floppy-disk"></i>Lưu hồ sơ</button>
-
-        <div class="sdiv"><i class="fa fa-calendar-days"></i>Lịch chụp</div>
-        <div id="me-cal"></div>
 
         <div class="sdiv"><i class="fa fa-images"></i>Album ảnh mẫu<span class="sp"></span><button class="addbtn" onclick="openAlbumEditor(-1)"><i class="fa fa-plus"></i> Album</button></div>
         <div id="my-albums"></div>
@@ -1458,14 +1459,16 @@ function pkgSlot(g) {
   return d && !b ? 'a' : b && !d ? 'b' : '';
 }
 const pkgsFor = (p, sv, slot) => pkgsOf(p, sv).filter(g => { const k = pkgSlot(g); return !k || (k === 'a') === (slot === 'a'); });   // chỉ gói đúng loại khách chọn
+const pkOpen = new Set();
+function togglePk(h) { const b = h.parentNode; b.classList.toggle('open'); const si = +b.dataset.si; b.classList.contains('open') ? pkOpen.add(si) : pkOpen.delete(si); }
 function renderPkgs() {
   const box = $('#f-pkgs'); if (!box) return;
   myData.pkgs = myData.pkgs || {};
   box.innerHTML = myData.services.filter(x => SERVICES.includes(x)).map(sv => {
     const si = SERVICES.indexOf(sv), arr = myData.pkgs[sv] || [];
-    return `<div class="pk-box" data-si="${si}"><div class="pk-h"><i class="fa ${svcIco(sv)}"></i>Gói giá — ${esc(sv)}</div>` +
+    return `<div class="pk-box${pkOpen.has(si) ? ' open' : ''}" data-si="${si}"><div class="pk-h" onclick="togglePk(this)"><i class="fa ${svcIco(sv)}"></i>Gói giá — ${esc(sv)} <span class="pk-cnt">(${arr.length} gói)</span><i class="fa fa-chevron-down pk-chev"></i></div><div class="pk-body">` +
       arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><select class="pk-s" title="Áp dụng cho buổi nào">${[['', 'Mọi buổi'], ['b', 'Chụp buổi (sáng/chiều)'], ['a', 'Chụp cả ngày']].map(([k, t]) => `<option value="${k}"${pkgSlot(g) === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
-      `<button type="button" class="lbtn" style="width:100%" onclick="addPkg(${si})"><i class="fa fa-plus"></i>Thêm gói giá</button></div>`;
+      `<button type="button" class="lbtn" style="width:100%" onclick="addPkg(${si})"><i class="fa fa-plus"></i>Thêm gói giá</button></div></div>`;
   }).join('');
 }
 function collectPkgs() {
@@ -1476,8 +1479,8 @@ function collectPkgs() {
     myData.pkgs[sv] = [...bx.querySelectorAll('.pk-r')].map(r => ({ n: r.querySelector('.pk-n').value.trim(), p: parseInt(r.querySelector('.pk-p').value.replace(/\D/g, '')) || 0, s: r.querySelector('.pk-s').value }));
   });
 }
-function addPkg(si) { collectPkgs(); const sv = SERVICES[si], a = (myData.pkgs[sv] = myData.pkgs[sv] || []); if (a.length >= MAX_PKG) return toast('Tối đa ' + MAX_PKG + ' gói / dịch vụ', '#d97706'); a.push({ n: '', p: 0, s: '' }); renderPkgs(); }
-function delPkg(si, i) { collectPkgs(); (myData.pkgs[SERVICES[si]] || []).splice(i, 1); renderPkgs(); }
+function addPkg(si) { collectPkgs(); const sv = SERVICES[si], a = (myData.pkgs[sv] = myData.pkgs[sv] || []); if (a.length >= MAX_PKG) return toast('Tối đa ' + MAX_PKG + ' gói / dịch vụ', '#d97706'); a.push({ n: '', p: 0, s: '' }); pkOpen.add(si); renderPkgs(); }
+function delPkg(si, i) { collectPkgs(); pkOpen.add(si); (myData.pkgs[SERVICES[si]] || []).splice(i, 1); renderPkgs(); }
 function pkgsHtml(p) {
   const rows = (p.services || []).map(sv => { const a = pkgsOf(p, sv); return a.length ? `<div class="pl-s"><i class="fa ${svcIco(sv)}"></i> ${esc(sv)}</div>` + a.map(g => `<div class="pl-i"><span>${esc(g.n)}</span><b>${g.p ? money(g.p) : ''}</b></div>`).join('') : ''; }).join('');
   return rows ? `<div class="pk-list"><div class="sec-t" style="margin-bottom:0"><i class="fa fa-tags"></i>Bảng giá các gói</div>${rows}</div>` : '';
@@ -1505,7 +1508,7 @@ function cleanData() {
   d.pay.tiers = (d.pay.tiers || []).filter(t => t && t.amt > 0).slice(0, 6).map(t => ({ amt: Math.min(1e10, parseInt(t.amt) || 0), ...(safeUrl(t.qr || '') ? { qr: safeUrl(t.qr) } : {}) }));
   d.pay.full = { on: !!(d.pay.full && d.pay.full.on), ...(d.pay.full && safeUrl(d.pay.full.qr || '') ? { qr: safeUrl(d.pay.full.qr) } : {}) };
   d.pay.deposit = d.pay.tiers.length ? d.pay.tiers[0].amt : 0;
-  d.albums = (d.albums || []).map(a => ({ id: a.id, title: a.title || '', desc: a.desc || '', cover: a.cover || '', photos: (a.photos || []).map(p => ({ u: p.u, t: p.t || p.u, ...(p.slide ? { slide: true } : {}) })) }));
+  d.albums = (d.albums || []).map(a => ({ id: a.id, title: a.title || '', desc: a.desc || '', cover: a.cover || '', photos: (a.photos || []).map(p => ({ u: p.u, t: p.t || p.u, ...(p.h ? { h: String(p.h).slice(0, 80) } : {}), ...(p.slide ? { slide: true } : {}) })) }));
   return d;
 }
 async function persist() { await Store.save(me.uid, cleanData()); }
@@ -1641,19 +1644,28 @@ function addPhotoLink() {
   if (alDraft.photos.length >= MAX_PHOTOS) return toast(`Tối đa ${MAX_PHOTOS} ảnh/album`, '#d97706');
   alDraft.photos.push({ u, t: u }); $('#ae-link').value = ''; renderAeGrid();
 }
+async function fileHash(f) {
+  try { const b = await crypto.subtle.digest('SHA-256', await f.arrayBuffer()); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+  catch (e) { return 'f' + f.size + '|' + f.name + '|' + f.lastModified; }
+}
 async function onPhotoFiles(inp) {
   const files = [...inp.files].slice(0, MAX_PHOTOS - alDraft.photos.length); inp.value = '';
   if (!files.length) return;
   uploading = true; $('#ae-save').disabled = true;
   const prog = $('#up-prog'); prog.style.display = 'flex';
-  let ok = 0;
+  let ok = 0, dup = 0;
   for (let i = 0; i < files.length; i++) {
     prog.querySelector('span').textContent = `Đang tải ảnh ${i + 1}/${files.length}...`;
-    try { alDraft.photos.push(await uploadImage(files[i])); ok++; renderAeGrid(); }
+    try {
+      const h = await fileHash(files[i]);
+      if (alDraft.photos.some(x => x.h === h)) { dup++; continue; }   // ảnh đã có trong album → không tải lại
+      const up = await uploadImage(files[i]); up.h = h; alDraft.photos.push(up); ok++; renderAeGrid();
+    }
     catch (e) { toast(e.message, '#dc2626'); if (/IMGBB|đầy/.test(e.message)) break; }
   }
   prog.style.display = 'none'; uploading = false; $('#ae-save').disabled = false;
   if (ok) toast(`✔ Đã tải ${ok} ảnh — nhớ bấm Lưu album`, '#059669');
+  if (dup) setTimeout(() => toast(`Bỏ qua ${dup} ảnh trùng đã có trong album`, '#d97706'), ok ? 2600 : 0);
 }
 async function saveAlbum() {
   if (uploading) return;
@@ -1849,6 +1861,12 @@ function payTiers(pay) {
   const t = (Array.isArray(pay.tiers) ? pay.tiers : (pay.deposit > 0 ? [{ amt: pay.deposit }] : [])).map((x, i) => ({ k: i, amt: x.amt, qr: x.qr || '', label: money(x.amt) })).filter(x => x.amt > 0);
   if (pay.full && pay.full.on) t.push({ k: 'full', amt: 0, qr: pay.full.qr || '', label: 'Thanh toán đủ' });
   return t;
+}
+function toggleMeCal() {
+  const w = $('#me-cal-wrap'), on = w.style.display === 'none';
+  w.style.display = on ? 'block' : 'none';
+  $('#cal-tg').innerHTML = on ? '<i class="fa fa-chevron-up"></i> Ẩn lịch' : '<i class="fa fa-calendar-days"></i> Xem lịch';
+  if (on) renderMeCal();
 }
 function setSeg(k) {
   [['bk', 'seg-bk', 'sg-bk'], ['pf', 'seg-pf', 'sg-pf'], ['ad', 'seg-ad', 'sg-ad']].forEach(([key, sec, btn]) => { $('#' + sec).style.display = k === key ? 'block' : 'none'; $('#' + btn).classList.toggle('on', k === key); });
@@ -2277,8 +2295,13 @@ function wmUrl(url, name) {
   const key = name + '|' + url;
   if (wmCache.has(key)) return wmCache.get(key);
   const p = (async () => {
-    const r = await fetch(url, { mode: 'cors', referrerPolicy: 'no-referrer' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    let r = null, err = null;
+    for (let a = 0; a < 3; a++) {   // máy chủ ảnh báo 5xx/429 (quá tải) → thử lại
+      try { r = await fetch(url, { mode: 'cors', referrerPolicy: 'no-referrer' }); if (r.ok) { err = null; break; } err = new Error('HTTP ' + r.status); if (r.status < 500 && r.status !== 429) break; }
+      catch (e) { err = e; r = null; }
+      if (a < 2) await new Promise(z => setTimeout(z, 1500 * (a + 1)));
+    }
+    if (err) throw err;
     const bu = URL.createObjectURL(await r.blob());
     try {
       const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('decode')); i.src = bu; });
@@ -2291,12 +2314,19 @@ function wmUrl(url, name) {
   if (wmCache.size > 150) { const k = wmCache.keys().next().value; wmCache.get(k).then(URL.revokeObjectURL, () => {}); wmCache.delete(k); }
   return p;
 }
-function wmApply(img, url, name) {   // gán ảnh đã đóng dấu; nếu không đóng dấu được thì dùng ảnh gốc và khóa lưu nhanh
+const WM_BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', WM_RETRY = [8000, 20000, 45000, 90000];
+function wmApply(img, url, name, n = 0) {   // gán ảnh đã đóng dấu; nếu không đóng dấu được thì dùng ảnh gốc và khóa lưu nhanh
   if (!url) return;
   const tok = img._wmTok = (img._wmTok || 0) + 1;
   img.classList.remove('wm-fb');
   wmUrl(url, name).then(u => { if (img._wmTok === tok) img.src = u; })
-    .catch(e => { console.warn('Đóng dấu ảnh lỗi, dùng ảnh gốc:', e); if (img._wmTok === tok) { img.classList.add('wm-fb'); img.src = url; } });
+    .catch(e => {
+      if (img._wmTok !== tok) return;
+      if (/^HTTP (5|429)/.test(e.message) && n < WM_RETRY.length) {   // máy chủ ảnh tạm lỗi: hiện khung xám rồi tự tải lại, không hiện ảnh báo lỗi của imgbb
+        img.src = WM_BLANK; setTimeout(() => { if (img._wmTok === tok && img.isConnected) wmApply(img, url, name, n + 1); }, WM_RETRY[n]); return;
+      }
+      console.warn('Đóng dấu ảnh lỗi, dùng ảnh gốc:', e); img.classList.add('wm-fb'); img.src = url;
+    });
 }
 function wmScan(root) {
   root.querySelectorAll('img[data-wm]:not([data-wmd])').forEach(im => { im.dataset.wmd = 1; wmApply(im, im.dataset.wm, im.dataset.wmo); });
