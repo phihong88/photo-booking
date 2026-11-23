@@ -1450,14 +1450,21 @@ function toggleSvc(s) { collectPkgs(); const a = myData.services; const i = a.in
 /* ----- Gói giá theo dịch vụ ----- */
 const MAX_PKG = 8;
 const pkgsOf = (p, sv) => ((p && p.pkgs && p.pkgs[sv]) || []).filter(x => x && x.n);
-const pkgsFor = (p, sv, slot) => pkgsOf(p, sv).filter(g => !g.s || g.s === slot);   // chỉ gói đúng buổi khách chọn
+/* loại gói: '' = mọi buổi, 'b' = chụp 1 buổi (sáng/chiều), 'a' = chụp cả ngày. Gói cũ chưa phân loại → đoán theo tên ("buổi"/"ngày") */
+function pkgSlot(g) {
+  if (g.s === 'b' || g.s === 'a') return g.s;
+  if (g.s === 's' || g.s === 'c') return 'b';
+  const n = String(g.n || '').toLowerCase(), d = /ng[àa]y/.test(n), b = /bu[ổo]i/.test(n);
+  return d && !b ? 'a' : b && !d ? 'b' : '';
+}
+const pkgsFor = (p, sv, slot) => pkgsOf(p, sv).filter(g => { const k = pkgSlot(g); return !k || (k === 'a') === (slot === 'a'); });   // chỉ gói đúng loại khách chọn
 function renderPkgs() {
   const box = $('#f-pkgs'); if (!box) return;
   myData.pkgs = myData.pkgs || {};
   box.innerHTML = myData.services.filter(x => SERVICES.includes(x)).map(sv => {
     const si = SERVICES.indexOf(sv), arr = myData.pkgs[sv] || [];
     return `<div class="pk-box" data-si="${si}"><div class="pk-h"><i class="fa ${svcIco(sv)}"></i>Gói giá — ${esc(sv)}</div>` +
-      arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><select class="pk-s" title="Áp dụng cho buổi nào">${[['', 'Mọi buổi'], ['s', 'Chỉ buổi sáng'], ['c', 'Chỉ buổi chiều'], ['a', 'Chỉ cả ngày']].map(([k, t]) => `<option value="${k}"${(g.s || '') === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
+      arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><select class="pk-s" title="Áp dụng cho buổi nào">${[['', 'Mọi buổi'], ['b', 'Chụp buổi (sáng/chiều)'], ['a', 'Chụp cả ngày']].map(([k, t]) => `<option value="${k}"${pkgSlot(g) === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
       `<button type="button" class="lbtn" style="width:100%" onclick="addPkg(${si})"><i class="fa fa-plus"></i>Thêm gói giá</button></div>`;
   }).join('');
 }
@@ -1492,7 +1499,7 @@ function cleanData() {
   });
   d.busy = nb;
   const np = {};
-  SERVICES.forEach(sv => { const a = ((d.pkgs || {})[sv] || []).filter(g => g && String(g.n || '').trim()).slice(0, MAX_PKG).map(g => ({ n: String(g.n).trim().slice(0, 120), p: Math.max(0, Math.min(1e10, parseInt(g.p) || 0)), ...(['s', 'c', 'a'].includes(g.s) ? { s: g.s } : {}) })); if (a.length) np[sv] = a; });
+  SERVICES.forEach(sv => { const a = ((d.pkgs || {})[sv] || []).filter(g => g && String(g.n || '').trim()).slice(0, MAX_PKG).map(g => ({ n: String(g.n).trim().slice(0, 120), p: Math.max(0, Math.min(1e10, parseInt(g.p) || 0)), ...(['b', 'a'].includes(pkgSlot(g)) ? { s: pkgSlot(g) } : {}) })); if (a.length) np[sv] = a; });
   d.pkgs = np;
   d.pay = d.pay || {};
   d.pay.tiers = (d.pay.tiers || []).filter(t => t && t.amt > 0).slice(0, 6).map(t => ({ amt: Math.min(1e10, parseInt(t.amt) || 0), ...(safeUrl(t.qr || '') ? { qr: safeUrl(t.qr) } : {}) }));
@@ -1906,7 +1913,7 @@ let bkPkg = -1, bkDep = null, bkPkgPro = null;
 function renderBkPkg() {
   const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : '', all = p ? pkgsOf(p, sv) : [], a = p ? pkgsFor(p, sv, bkSlot) : [], el = $('#bk-pkg-sec'); if (!el) return;
   if (bkPkg >= a.length || sv !== renderBkPkg.sv || bkSlot !== renderBkPkg.slot) bkPkg = -1; renderBkPkg.sv = sv; renderBkPkg.slot = bkSlot;
-  el.innerHTML = all.length && !bkSlot ? '<div class="bk-m" style="margin-bottom:10px">Chọn buổi chụp (sáng / chiều / cả ngày) để xem các gói giá phù hợp.</div>'
+  el.innerHTML = all.length && !bkSlot ? '<div class="bk-m" style="margin-bottom:10px">Chọn buổi chụp hoặc cả ngày để xem các gói giá phù hợp.</div>'
     : all.length && !a.length ? '<div class="bk-m" style="margin-bottom:10px">Chưa có gói giá cho buổi này — hãy liên hệ thợ để được báo giá.</div>' : a.length ? `<div class="fg"><label>Chọn gói giá</label>${a.map((g, i) => `<div class="sg-i${bkPkg === i ? ' on' : ''}" onclick="pickPkg(${i})"><div style="flex:1;min-width:0"><b>${esc(g.n)}</b></div><b style="color:var(--ok);white-space:nowrap">${g.p ? money(g.p) : ''}</b></div>`).join('')}</div>` : '';
   renderBkDep();
 }
