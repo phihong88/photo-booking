@@ -213,7 +213,7 @@ input,textarea,select{font-family:inherit}
 .pk-box{border:1.5px solid var(--bdr);border-radius:12px;padding:10px;margin-top:10px;background:var(--sur)}
 .pk-h{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .pk-r{display:flex;gap:6px;margin-bottom:6px;align-items:center}
-.pk-r input{min-width:0}.pk-r .pk-n{flex:1}.pk-r .pk-p{width:104px;flex:none}
+.pk-r input{min-width:0}.pk-r{flex-wrap:wrap}.pk-r .pk-n{flex:1 1 100%}.pk-r .pk-s{flex:1;min-width:0;padding:9px 8px;border:1.5px solid var(--bdr);border-radius:9px;background:#fff;font-size:13px}.pk-r .pk-p{width:104px;flex:none}
 .pk-x{border:0;background:none;color:var(--red);font-size:15px;cursor:pointer;padding:6px}
 .tr{display:flex;gap:6px;align-items:center;margin-bottom:6px}.tr input{flex:1;min-width:0}.tr .lbtn{padding:9px 10px;white-space:nowrap}
 .tr-img{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid var(--bdr)}
@@ -1450,13 +1450,14 @@ function toggleSvc(s) { collectPkgs(); const a = myData.services; const i = a.in
 /* ----- Gói giá theo dịch vụ ----- */
 const MAX_PKG = 8;
 const pkgsOf = (p, sv) => ((p && p.pkgs && p.pkgs[sv]) || []).filter(x => x && x.n);
+const pkgsFor = (p, sv, slot) => pkgsOf(p, sv).filter(g => !g.s || g.s === slot);   // chỉ gói đúng buổi khách chọn
 function renderPkgs() {
   const box = $('#f-pkgs'); if (!box) return;
   myData.pkgs = myData.pkgs || {};
   box.innerHTML = myData.services.filter(x => SERVICES.includes(x)).map(sv => {
     const si = SERVICES.indexOf(sv), arr = myData.pkgs[sv] || [];
     return `<div class="pk-box" data-si="${si}"><div class="pk-h"><i class="fa ${svcIco(sv)}"></i>Gói giá — ${esc(sv)}</div>` +
-      arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
+      arr.map((g, i) => `<div class="pk-r"><input class="pk-n" maxlength="120" placeholder="Vd: Chỉnh 30 file + toàn bộ ảnh gốc" value="${esc(g.n)}"><select class="pk-s" title="Áp dụng cho buổi nào">${[['', 'Mọi buổi'], ['s', 'Chỉ buổi sáng'], ['c', 'Chỉ buổi chiều'], ['a', 'Chỉ cả ngày']].map(([k, t]) => `<option value="${k}"${(g.s || '') === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input class="pk-p" inputmode="numeric" placeholder="Giá (đ)" value="${g.p || ''}"><button type="button" class="pk-x" onclick="delPkg(${si},${i})"><i class="fa fa-xmark"></i></button></div>`).join('') +
       `<button type="button" class="lbtn" style="width:100%" onclick="addPkg(${si})"><i class="fa fa-plus"></i>Thêm gói giá</button></div>`;
   }).join('');
 }
@@ -1465,10 +1466,10 @@ function collectPkgs() {
   myData.pkgs = myData.pkgs || {};
   box.querySelectorAll('.pk-box').forEach(bx => {
     const sv = SERVICES[+bx.dataset.si]; if (!sv) return;
-    myData.pkgs[sv] = [...bx.querySelectorAll('.pk-r')].map(r => ({ n: r.querySelector('.pk-n').value.trim(), p: parseInt(r.querySelector('.pk-p').value.replace(/\D/g, '')) || 0 }));
+    myData.pkgs[sv] = [...bx.querySelectorAll('.pk-r')].map(r => ({ n: r.querySelector('.pk-n').value.trim(), p: parseInt(r.querySelector('.pk-p').value.replace(/\D/g, '')) || 0, s: r.querySelector('.pk-s').value }));
   });
 }
-function addPkg(si) { collectPkgs(); const sv = SERVICES[si], a = (myData.pkgs[sv] = myData.pkgs[sv] || []); if (a.length >= MAX_PKG) return toast('Tối đa ' + MAX_PKG + ' gói / dịch vụ', '#d97706'); a.push({ n: '', p: 0 }); renderPkgs(); }
+function addPkg(si) { collectPkgs(); const sv = SERVICES[si], a = (myData.pkgs[sv] = myData.pkgs[sv] || []); if (a.length >= MAX_PKG) return toast('Tối đa ' + MAX_PKG + ' gói / dịch vụ', '#d97706'); a.push({ n: '', p: 0, s: '' }); renderPkgs(); }
 function delPkg(si, i) { collectPkgs(); (myData.pkgs[SERVICES[si]] || []).splice(i, 1); renderPkgs(); }
 function pkgsHtml(p) {
   const rows = (p.services || []).map(sv => { const a = pkgsOf(p, sv); return a.length ? `<div class="pl-s"><i class="fa ${svcIco(sv)}"></i> ${esc(sv)}</div>` + a.map(g => `<div class="pl-i"><span>${esc(g.n)}</span><b>${g.p ? money(g.p) : ''}</b></div>`).join('') : ''; }).join('');
@@ -1491,7 +1492,7 @@ function cleanData() {
   });
   d.busy = nb;
   const np = {};
-  SERVICES.forEach(sv => { const a = ((d.pkgs || {})[sv] || []).filter(g => g && String(g.n || '').trim()).slice(0, MAX_PKG).map(g => ({ n: String(g.n).trim().slice(0, 120), p: Math.max(0, Math.min(1e10, parseInt(g.p) || 0)) })); if (a.length) np[sv] = a; });
+  SERVICES.forEach(sv => { const a = ((d.pkgs || {})[sv] || []).filter(g => g && String(g.n || '').trim()).slice(0, MAX_PKG).map(g => ({ n: String(g.n).trim().slice(0, 120), p: Math.max(0, Math.min(1e10, parseInt(g.p) || 0)), ...(['s', 'c', 'a'].includes(g.s) ? { s: g.s } : {}) })); if (a.length) np[sv] = a; });
   d.pkgs = np;
   d.pay = d.pay || {};
   d.pay.tiers = (d.pay.tiers || []).filter(t => t && t.amt > 0).slice(0, 6).map(t => ({ amt: Math.min(1e10, parseInt(t.amt) || 0), ...(safeUrl(t.qr || '') ? { qr: safeUrl(t.qr) } : {}) }));
@@ -1903,13 +1904,14 @@ function renderBkDyn() {
 }
 let bkPkg = -1, bkDep = null, bkPkgPro = null;
 function renderBkPkg() {
-  const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : '', a = p ? pkgsOf(p, sv) : [], el = $('#bk-pkg-sec'); if (!el) return;
-  if (bkPkg >= a.length || sv !== renderBkPkg.sv) bkPkg = -1; renderBkPkg.sv = sv;
-  el.innerHTML = a.length ? `<div class="fg"><label>Chọn gói giá</label>${a.map((g, i) => `<div class="sg-i${bkPkg === i ? ' on' : ''}" onclick="pickPkg(${i})"><div style="flex:1;min-width:0"><b>${esc(g.n)}</b></div><b style="color:var(--ok);white-space:nowrap">${g.p ? money(g.p) : ''}</b></div>`).join('')}</div>` : '';
+  const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : '', all = p ? pkgsOf(p, sv) : [], a = p ? pkgsFor(p, sv, bkSlot) : [], el = $('#bk-pkg-sec'); if (!el) return;
+  if (bkPkg >= a.length || sv !== renderBkPkg.sv || bkSlot !== renderBkPkg.slot) bkPkg = -1; renderBkPkg.sv = sv; renderBkPkg.slot = bkSlot;
+  el.innerHTML = all.length && !bkSlot ? '<div class="bk-m" style="margin-bottom:10px">Chọn buổi chụp (sáng / chiều / cả ngày) để xem các gói giá phù hợp.</div>'
+    : all.length && !a.length ? '<div class="bk-m" style="margin-bottom:10px">Chưa có gói giá cho buổi này — hãy liên hệ thợ để được báo giá.</div>' : a.length ? `<div class="fg"><label>Chọn gói giá</label>${a.map((g, i) => `<div class="sg-i${bkPkg === i ? ' on' : ''}" onclick="pickPkg(${i})"><div style="flex:1;min-width:0"><b>${esc(g.n)}</b></div><b style="color:var(--ok);white-space:nowrap">${g.p ? money(g.p) : ''}</b></div>`).join('')}</div>` : '';
   renderBkDep();
 }
 function pickPkg(i) { bkPkg = bkPkg === i ? -1 : i; renderBkPkg(); }
-function curPkg() { const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : ''; return p && bkPkg >= 0 ? pkgsOf(p, sv)[bkPkg] || null : null; }
+function curPkg() { const p = bkPro, sv = $('#bk-svc') ? $('#bk-svc').value : ''; return p && bkPkg >= 0 ? pkgsFor(p, sv, bkSlot)[bkPkg] || null : null; }
 function depAmt(t) { if (!t) return 0; if (t.k === 'full') { const g = curPkg(); return g ? g.p : 0; } return t.amt; }
 function renderBkDep() {
   const el = $('#bk-dep'); if (!el) return;
