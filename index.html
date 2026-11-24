@@ -983,7 +983,10 @@ function seedDemo() { return {}; }
 const map = L.map('map', { zoomControl: false }).setView(HOME, HOME_ZOOM);
 const lSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 const lStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-const lLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap · © CARTO' });   // tên xã/phường, huyện, tỉnh, đường (tiếng Việt) phủ lên ảnh vệ tinh
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const lLabels = L.layerGroup([   // nhãn địa danh + đường phủ lên ảnh vệ tinh (Esri, miễn phí, không cần key)
+  L.tileLayer(ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
+  L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Nhãn: Esri' })]);
 lSat.addTo(map); lLabels.addTo(map);
 let isSat = true;
 const isMob = () => true;   // bản đồ luôn là tab riêng (cả desktop lẫn mobile)
