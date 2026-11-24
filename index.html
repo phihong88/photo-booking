@@ -982,11 +982,26 @@ function seedDemo() { return {}; }
 /* ══════════ MAP ══════════ */
 const map = L.map('map', { zoomControl: false }).setView(HOME, HOME_ZOOM);
 const lSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-const lStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const lLabels = L.layerGroup([   // nhãn địa danh + đường phủ lên ảnh vệ tinh (Esri, miễn phí, không cần key)
   L.tileLayer(ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
   L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Nhãn: Esri' })]);
+/* bản đồ đường: thử lần lượt OSM → OSM France → Esri; nguồn nào không tải được ô bản đồ thì tự chuyển nguồn kế tiếp */
+const STREET = [
+  ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }],
+  ['https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 20, subdomains: 'abc', attribution: '© OpenStreetMap France' }],
+  [ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }]];
+let stIdx = 0, lStreet = null;
+function mkStreet() {
+  const l = L.tileLayer(STREET[stIdx][0], STREET[stIdx][1]); let ok = 0, er = 0;
+  l.on('tileload', () => ok++);
+  l.on('tileerror', () => {
+    if (ok || ++er < 3 || stIdx >= STREET.length - 1 || lStreet !== l) return;
+    const on = map.hasLayer(l); map.removeLayer(l); stIdx++; lStreet = mkStreet(); if (on) lStreet.addTo(map);
+  });
+  return l;
+}
+lStreet = mkStreet();
 lSat.addTo(map); lLabels.addTo(map);
 let isSat = true;
 const isMob = () => true;   // bản đồ luôn là tab riêng (cả desktop lẫn mobile)
