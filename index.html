@@ -348,6 +348,9 @@ button.slot{cursor:pointer}
   .d-head{padding:0 14px}
   .alb-grid{gap:8px}
   .ph-grid{padding:10px 10px 16px;gap:4px}
+  /* điện thoại/máy tính bảng: thanh dưới đã có Đặt lịch/Gọi/Zalo → ẩn bản trùng ở trên */
+  .d-main{grid-template-columns:1fr}.d-main .dm.pri,.dact.call,.dact.zalo{display:none}
+  .d-acts{grid-template-columns:1fr 1fr}
   .d-sticky{display:flex;position:sticky;bottom:0;gap:8px;padding:10px 14px;background:rgba(255,255,255,.97);border-top:1px solid var(--bdr);z-index:4}
   .sbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-radius:12px;font-size:15px;font-weight:800;color:#fff;text-decoration:none}
   .sbtn.call{background:var(--ok)}
