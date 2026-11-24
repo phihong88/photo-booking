@@ -983,7 +983,8 @@ function seedDemo() { return {}; }
 const map = L.map('map', { zoomControl: false }).setView(HOME, HOME_ZOOM);
 const lSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 const lStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-lSat.addTo(map);
+const lLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap · © CARTO' });   // tên xã/phường, huyện, tỉnh, đường (tiếng Việt) phủ lên ảnh vệ tinh
+lSat.addTo(map); lLabels.addTo(map);
 let isSat = true;
 const isMob = () => true;   // bản đồ luôn là tab riêng (cả desktop lẫn mobile)
 let pendingView = null;
@@ -1018,8 +1019,8 @@ function updateBnav() {
 }
 window.addEventListener('resize', () => { if (!isMob()) document.body.classList.remove('m-map'); map.invalidateSize(); });
 function toggleLayer() {
-  if (isSat) { map.removeLayer(lSat); lStreet.addTo(map); $('#btn-layer').innerHTML = '<i class="fa fa-map"></i>'; }
-  else { map.removeLayer(lStreet); lSat.addTo(map); $('#btn-layer').innerHTML = '<i class="fa fa-satellite"></i>'; }
+  if (isSat) { map.removeLayer(lSat); map.removeLayer(lLabels); lStreet.addTo(map); $('#btn-layer').innerHTML = '<i class="fa fa-map"></i>'; }
+  else { map.removeLayer(lStreet); lSat.addTo(map); lLabels.addTo(map); $('#btn-layer').innerHTML = '<i class="fa fa-satellite"></i>'; }
   isSat = !isSat;
 }
 function goHome() {
@@ -1700,8 +1701,25 @@ function compressImage(file, max, q) {
     img.src = url;
   });
 }
+/* Ảnh lưu trên Cloudflare R2 (qua Worker, cần đăng nhập); nếu R2 lỗi hoặc chưa cấu hình thì tự dùng imgBB */
+const USE_R2 = false;   // đổi thành true khi đã bật Cloudflare R2
+async function r2Put(dataUrl) {
+  const t = await Store.token(); if (!t) throw new Error('Chưa đăng nhập');
+  const body = await (await fetch(dataUrl)).blob();
+  const r = await fetch(new URL('/up', ZALO_BRIDGE_URL).href, { method: 'PUT', headers: { Authorization: 'Bearer ' + t }, body });
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok || !j.url) throw new Error(j.error || ('HTTP ' + r.status));
+  return j.url;
+}
 async function uploadImage(file, max = 2048) {
   if (!/^image\//.test(file.type)) throw new Error('Không phải file ảnh: ' + file.name);
+  if (USE_R2 && !DEMO && me && zaloReady()) {
+    try {
+      const u = await r2Put(await compressImage(file, max, .88));
+      let t = u; if (max > 700) { try { t = await r2Put(await compressImage(file, 640, .8)); } catch (e) { t = u; } }
+      return { u, t };
+    } catch (e) { console.warn('R2 lỗi, chuyển sang imgBB:', e.message); }
+  }
   if (IMGBB_KEY) {
     const data = await compressImage(file, max, .88);
     const fd = new FormData(); fd.append('image', data.split(',')[1]);
